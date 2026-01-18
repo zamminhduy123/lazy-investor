@@ -1,0 +1,27 @@
+Goal: Create the frontend for a "Lazy Investor" Dashboard for the Vietnamese Stock Market. The goal is to minimize reading time and maximize insight.
+Tech Stack: React, Tailwind CSS, Lucide React (icons), Recharts (optional, for simple sparklines).
+The Layout Strategy (The "Executive Brief"):
+Please build a single-page dashboard with the following three distinct sections, arranged vertically:
+Top Section: The Watchlist Ribbon (Market Pulse)
+A horizontal row of cards for the user's tracked stocks (e.g., HPG, FPT, MWG).
+Each card should display: Ticker Symbol, Current Price, and % Change (Green for positive, Red for negative).
+Interaction: Clicking a card filters the News and AI Summary sections below for that specific stock. Default view is "All Watchlist".
+Middle Section: The AI Intelligence Center (The "Lazy" Feature)
+This is the most important section. It should look like a premium "Briefing" card.
+State A (Loading/Idle): A clean, prominent button that says "✨ Generate Daily Market Briefing".
+State B (Analyzed): A structured text area showing the "Consolidated AI Summary". It should have:
+Headline: The most critical market narrative.
+Sentiment Meter: A visual bar or badge (Bullish/Bearish/Neutral).
+Key Takeaways: Bullet points summarizing the collective news.
+UX Note: This replaces the need to summarize individual articles one by one.
+Bottom Section: The Evidence Feed (Raw News)
+A list of the latest news headlines related to the selected stocks.
+Design: Clean, dense rows (Title, Source, Time ago).
+Action: Each row has a small "Expand" or "Analyze" icon if the user wants to drill down into that specific article.
+Visual Style & Theme:
+Palette: "Institutional Clean". Use Slate-500/900 for text, clean white backgrounds, and subtle borders.
+Colors: Use distinct, standard financial colors for data (Emerald Green for up, Rose Red for down).
+Vibe: Minimalist, data-heavy but not cluttered. Think "Linear" or "Robinhood Web".
+Data Mocking:
+Since the backend isn't fully connected, please mock the data with realistic Vietnamese stock examples (e.g., HPG at 28,000 VND, FPT at 96,000 VND).
+Mock the AI response to show how the markdown summary would render.
