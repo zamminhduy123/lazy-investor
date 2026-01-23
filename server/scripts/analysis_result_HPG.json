@@ -1,0 +1,136 @@
+{
+  "symbol": "HPG",
+  "market_context": "Stock Price Today: 26.9 (Change: -0.74%)",
+  "articles": [
+    {
+      "title": "Hòa Phát (HPG) nộp ngân sách 13.000 tỷ đồng",
+      "link": "https://www.tinnhanhchungkhoan.vn/hoa-phat-hpg-nop-ngan-sach-13000-ty-dong-post383686.html",
+      "pubDate": "2026-01-23 13:42:19.231480",
+      "analysis": {
+        "is_relevant": false,
+        "relevance_reason": "Tin chỉ báo cáo số thuế nộp cao (hậu quả của lợi nhuận), không tiết lộ doanh thu/lợi nhuận mới hay guidance, không tác động trực tiếp đến giá cổ phiếu.",
+        "sentiment": "Neutral",
+        "tldr": "Tập đoàn Hòa Phát nộp 13.000 tỷ đồng ngân sách năm 2025 tại 20 tỉnh thành, với Dung Quất và Hải Dương dẫn đầu.",
+        "rationale": "Nộp thuế cao chứng tỏ lợi nhuận khủng thật, nhưng giờ công bố thì ai chả biết, giá HPG đang đỏ sàn thì tin này có cứu nổi? Chỉ là báo cáo quá khứ, nhà đầu tư cần số liệu tài chính cụ thể mới tin.",
+        "key_drivers": [
+          "Nộp 13.000 tỷ đồng ngân sách năm 2025",
+          "Dung Quất đóng góp 8.237 tỷ",
+          "Hải Dương tăng 48% lên 2.034 tỷ",
+          "Tổng lũy kế 101.000 tỷ từ 2007",
+          "Top 4 doanh nghiệp tư nhân nộp thuế nhiều nhất"
+        ],
+        "risks_or_caveats": [
+          "Nộp thuế cao ngụ ý lợi nhuận trước thuế lớn, nhưng không có số liệu doanh thu cụ thể",
+          "Tin cũ, thị trường đã phản ánh",
+          "Giá HPG đang giảm 0.74% hôm nay"
+        ],
+        "score": 2,
+        "confidence": 0.95
+      }
+    },
+    {
+      "title": "HPG: Nghị quyết HĐQT về việc thông qua chủ trương thực hiện giao dịch với bên liên quan dự kiến phát sinh năm 2026",
+      "link": "https://www.hsx.vn/vi/tin-tuc/hpg-nghi-quyet-hdqt-ve-viec-thong-qua-chu-truong-thuc-hien-giao-dich-voi-ben-lien-quan-du-kien-phat-sinh-nam-2026/2429855",
+      "pubDate": "2026-01-23 13:42:19.231734",
+      "analysis": {
+        "is_relevant": true,
+        "relevance_reason": "Tin về nghị quyết HĐQT phê duyệt giao dịch với bên liên quan dự kiến 2026 có thể gián tiếp ảnh hưởng doanh thu/chi phí HPG qua kênh liên quan.",
+        "sentiment": "Neutral",
+        "tldr": "HPG thông qua nghị quyết HĐQT phê duyệt chủ trương giao dịch với bên liên quan dự kiến phát sinh năm 2026.",
+        "rationale": "Tin mơ hồ không rõ giao dịch tốt xấu hay giá trị bao nhiêu, chỉ là chủ trương cho tương lai xa. Hoài nghi vì bên liên quan thường dễ bị soi, chưa chắc mang lại lợi ích rõ rệt.",
+        "key_drivers": [
+          "Nghị quyết HĐQT phê duyệt giao dịch bên liên quan",
+          "Dự kiến phát sinh 2026"
+        ],
+        "risks_or_caveats": [
+          "Giao dịch bên liên quan dễ bị nghi ngờ minh bạch",
+          "Không rõ tác động tài chính cụ thể",
+          "Có thể phát sinh chi phí hoặc rủi ro pháp lý"
+        ],
+        "score": 2,
+        "confidence": 0.4
+      }
+    },
+    {
+      "title": "Hòa Phát (HPG) lập kỷ lục vượt 10 triệu tấn thép trong năm 2025, tăng 31% so với 2024",
+      "link": "https://www.tinnhanhchungkhoan.vn/hoa-phat-hpg-lap-ky-luc-vuot-10-trieu-tan-thep-trong-nam-2025-tang-31-so-voi-2024-post383465.html",
+      "pubDate": "2026-01-23 13:42:19.231900",
+      "analysis": {
+        "is_relevant": true,
+        "relevance_reason": "Tin báo cáo kỷ lục sản lượng thép 10.6 triệu tấn năm 2025, tăng 31% so với 2024, trực tiếp tác động tích cực đến doanh thu và lợi nhuận HPG.",
+        "sentiment": "Bullish",
+        "tldr": "Hòa Phát (HPG) lập kỷ lục sản xuất 11 triệu tấn thép thô và bán 10.6 triệu tấn các sản phẩm thép chính trong năm 2025, tăng mạnh so với 2024.",
+        "rationale": "Sản lượng vọt lên kỷ lục nghe thì ngon lành, chứng tỏ Dung Quất 2 chạy tốt, thị phần số 1 vững chãi. Nhưng giá cổ phiếu đang đỏ sàn thì liệu có phải 'tin vui muộn' hay thị trường đã đánh giá hết rồi?",
+        "key_drivers": [
+          "Sản lượng bán thép chính đạt 10.6 triệu tấn, +31% YoY",
+          "HRC tăng 73% lên 5 triệu tấn, chiếm 60% thị phần VN",
+          "Thép xây dựng 4.8 triệu tấn, giữ 36% thị phần số 1",
+          "Dây chuyền HRC2 Dung Quất bổ sung mạnh từ Q4"
+        ],
+        "risks_or_caveats": [
+          "Giá thép biến động khó lường",
+          "Nhu cầu xây dựng chưa bùng nổ mạnh",
+          "Chi phí nguyên liệu có thể tăng"
+        ],
+        "score": 8,
+        "confidence": 0.95
+      }
+    },
+    {
+      "title": "Hòa Phát (HPG) đầu tư Khu công nghiệp số 06 quy mô hơn 230 ha tại Hưng Yên",
+      "link": "https://www.tinnhanhchungkhoan.vn/hoa-phat-hpg-dau-tu-khu-cong-nghiep-so-06-quy-mo-hon-230-ha-tai-hung-yen-post382538.html",
+      "pubDate": "2026-01-23 13:42:19.232049",
+      "analysis": {
+        "is_relevant": true,
+        "relevance_reason": "HPG được phê duyệt dự án KCN lớn 230ha, vốn 2.700 tỷ, mở rộng hệ sinh thái công nghiệp, tác động gián tiếp đến doanh thu/lợi nhuận dài hạn.",
+        "sentiment": "Bullish",
+        "tldr": "HPG được Hưng Yên chấp thuận đầu tư Khu công nghiệp số 06 giai đoạn 1 quy mô 230ha với tổng vốn hơn 2.700 tỷ đồng.",
+        "rationale": "Tin này cho thấy HPG đang đẩy mạnh đa dạng hóa sang bất động sản công nghiệp, có thể tăng doanh thu dài hạn nhưng vốn khổng lồ thế này liệu có kéo dài lợi nhuận thép không? Hoài nghi vì triển khai muộn từ 2026.",
+        "key_drivers": [
+          "Phê duyệt dự án KCN 230ha, vốn 2.700 tỷ",
+          "Vị trí chiến lược gần cao tốc, cảng biển",
+          "Mở rộng hệ sinh thái công nghiệp bền vững",
+          "Thời hạn 50 năm, bắt đầu xây Q3/2026"
+        ],
+        "risks_or_caveats": [
+          "Triển khai chậm, bàn giao đất Q1/2027",
+          "Rủi ro giải phóng mặt bằng",
+          "Phụ thuộc nhu cầu thuê đất KCN"
+        ],
+        "score": 5,
+        "confidence": 0.85
+      }
+    },
+    {
+      "title": "Hòa Phát khởi công Nhà máy sản xuất ray cao tốc và thép đặc biệt, sẵn sàng cung cấp vào các dự án trọng điểm",
+      "link": "https://www.tinnhanhchungkhoan.vn/hoa-phat-khoi-cong-nha-may-san-xuat-ray-cao-toc-va-thep-dac-biet-san-sang-cung-cap-vao-cac-du-an-trong-diem-post382400.html",
+      "pubDate": "2026-01-23 13:42:19.232182",
+      "analysis": {
+        "is_relevant": true,
+        "relevance_reason": "Tin khởi công nhà máy ray cao tốc Dung Quất (700k tấn/năm, vốn >10.000 tỷ) mở rộng sản xuất thép cao cấp, tăng doanh thu dài hạn cho HPG.",
+        "sentiment": "Bullish",
+        "tldr": "Hòa Phát khởi công nhà máy sản xuất ray đường sắt cao tốc và thép đặc biệt tại Dung Quất với công suất 700.000 tấn/năm, vốn đầu tư hơn 10.000 tỷ đồng, dự kiến sản xuất từ 2027.",
+        "rationale": "Khởi công dự án lớn nghe hay ho, hứa hẹn doanh thu mới từ hạ tầng quốc gia, nhưng vốn khổng lồ và chờ đến 2027 mới có tiền, giờ giá HPG đang đỏ thì ai tin ngay được.",
+        "key_drivers": [
+          "Khởi công nhà máy ray cao tốc 700k tấn/năm",
+          "Vốn đầu tư >10.000 tỷ, công nghệ châu Âu hiện đại",
+          "Sẵn sàng cung cấp dự án đường sắt trọng điểm quốc gia",
+          "Giảm nhập khẩu, tăng vị thế HPG trong thép cao cấp"
+        ],
+        "risks_or_caveats": [
+          "Chưa có doanh thu đến 2027, rủi ro chậm tiến độ",
+          "Đầu tư lớn có thể làm pha loãng lợi nhuận ngắn hạn",
+          "Phụ thuộc dự án hạ tầng nhà nước có triển khai không"
+        ],
+        "score": 7,
+        "confidence": 0.9
+      }
+    }
+  ],
+  "overall_summary": {
+    "summary": "Tập đoàn Hòa Phát (HPG) ghi nhận năm 2025 thành công vượt bậc với sản lượng thép thô đạt 11 triệu tấn, tăng 26% và bán 10,6 triệu tấn sản phẩm thép chính, tăng 31% so với 2024, lập kỷ lục lịch sử. Công ty nộp ngân sách 13.000 tỷ đồng, được phê duyệt đầu tư Khu công nghiệp 230ha tại Hưng Yên và khởi công nhà máy ray cao tốc Dung Quất công suất 700.000 tấn/năm, khẳng định vị thế dẫn đầu thị trường thép Việt Nam.",
+    "market_sentiment": "Bullish",
+    "trend_analysis": "Xu hướng tăng trưởng mạnh mẽ nhờ mở rộng sản xuất, chinh phục kỷ lục công suất, các dự án đầu tư chiến lược hạ tầng và củng cố thị phần nội địa trước nhập khẩu giảm.",
+    "confidence_score": 10
+  }
+}
