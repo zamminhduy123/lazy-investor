@@ -10,6 +10,7 @@ import type {
   SymbolsResponse,
   IndicesResponse,
   StockQuoteData,
+  StockPerformanceData
 } from "@/store/stocks/types";
 
 /**
@@ -128,6 +129,16 @@ export function useIndices(enabled = true) {
     queryFn: () =>
       stocksApi.getIndices<IndicesResponse>() as Promise<IndicesResponse>,
     enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useStockPerformance(symbol: string | null, enabled = true) {
+  return useQuery<StockPerformanceData>({
+    queryKey: stocksApi.queryKeys.stockPerformance(symbol || ""),
+    queryFn: () =>
+      stocksApi.getStockPerformance<StockPerformanceData>(symbol!) as Promise<StockPerformanceData>,
+    enabled: !!symbol && enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

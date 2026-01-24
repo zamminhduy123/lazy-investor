@@ -12,8 +12,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { stocksApi, SymbolsApiResponse } from "@/api/stocks";
-import { Stock, StockSymbol } from "@/store/stocks/types";
+import { stocksApi, SymbolsApiResponse } from "@/api";
+import { Stock, StockSymbol } from "@/store";
 
 interface WatchlistRibbonProps {
   stocks: Stock[];
@@ -45,7 +45,7 @@ export function WatchlistRibbon({ stocks, selectedSymbol, onSelectSymbol, onRemo
       price: 0, // Default or fetch actual priceribb
       change: 0,
       changePercent: 0,
-      volume: "0",
+      volume: 0,
     };
     // fetch stock /stock-info"
     stocksApi.getStockInfo([stock.symbol]).then((res : any) => {
@@ -76,8 +76,14 @@ export function WatchlistRibbon({ stocks, selectedSymbol, onSelectSymbol, onRemo
   const allStocks: StockSymbol[] = useMemo(() => {
     const raw = symbolsQuery.data
     if (!raw) return [];
-    const items: StockSymbol[] = Array.isArray(raw.data) ? raw.data : [];
-    return items
+    return (Array.isArray(raw.data) ? raw.data : []).map((s) => ({
+      symbol: s.symbol,
+      exchange: s.comGroupCode,
+      type: "", // Type info not provided in SymbolsApiResponse
+      organ_short_name: s.organName,
+      organ_name: s.organName,
+      product_grp_id: "",
+    }));
   }, [symbolsQuery.data]);
 
   const availableToAdd = useMemo(() => {

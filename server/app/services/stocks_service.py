@@ -304,24 +304,35 @@ def get_price_board(symbols: List[str]) -> Dict[str, Any]:
     except Exception as e:
         return _err(f"Failed to fetch price board: {str(e)}", symbols=symbols)
 
+# Temporary cache to avoid rate limits during testing
+_stock_info_cache: Dict[str, Any] = {}
+
 def get_stock_info(symbols: List[str]) -> Dict[str, Any]:
     try:
         symbols = [s.strip().upper() for s in symbols if s and s.strip()]
         
         stock_info = {}
         for symbol in symbols:
+            # Check cache first
+            if symbol in _stock_info_cache:
+                stock_info[symbol] = _stock_info_cache[symbol]
+                continue
+
             quote = Quote(source="VCI", symbol=symbol)    
             df = quote.history(interval='1D', start=datetime.now().strftime("%Y-%m-%d"), end=datetime.now().strftime("%Y-%m-%d"))
             close = df['close'].iloc[-1]
             change = close - df['open'].iloc[-1]
             volume = df['volume'].iloc[-1]
             change_percentage = ((change) / df['open'].iloc[-1]) * 100
-            stock_info[symbol] = {
+            
+            data = {
                 "close": close,
                 "change": change,
                 "change_percentage": change_percentage,
                 "volume": volume
             }
+            stock_info[symbol] = data
+            _stock_info_cache[symbol] = data
             
         print("Fetched stock info:", to_jsonable(stock_info))
 
@@ -372,3 +383,74 @@ def get_indices() -> Dict[str, Any]:
         return _ok({"data": syms, "count": len(syms)})
     except Exception as e:
         return _err(f"Failed to fetch indices: {str(e)}")
+    
+def get_stock_performance(symbol: str) -> Dict[str, Any]:
+    """
+    Calculates 1-Week, 1-Month, 3-Month, 6-Month, and 1-Year performance.
+    Logic: 
+    - 1 Week approx = 5 trading sessions
+    - 1 Month approx = 20 trading sessions
+    - 3 Months approx = 63 trading sessions
+    - 6 Months approx = 125 trading sessions
+    - 1 Year approx = 250 trading sessions
+    """
+    try:
+        # Fetch enough history (~400 days to cover 1 year of trading sessions + holidays)
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=400)).strftime("%Y-%m-%d")
+        
+        quote = Quote(source="vci", symbol=symbol)
+        # Fetch Daily (1D) data
+        df = quote.history(start=start_date, end=end_date, interval='1D')
+        
+        if df.empty or len(df) < 2:
+            return {"1W": "N/A", "1M": "N/A", "3M": "N/A", "6M": "N/A", "1Y": "N/A"}
+
+        # Get the Latest Close Price (The last row)
+        current_price = df['close'].iloc[-1]
+        
+        # --- CALCULATE 1 WEEK (5 Sessions ago) ---
+        if len(df) >= 6:
+            price_1w = df['close'].iloc[-6]
+            pct_1w = ((current_price - price_1w) / price_1w) * 100
+            str_1w = f"{pct_1w:+.1f}%"
+        else:
+            str_1w = "N/A"
+
+        # --- CALCULATE 1 MONTH (20 Sessions ago) ---
+        if len(df) >= 21:
+            price_1m = df['close'].iloc[-21]
+            pct_1m = ((current_price - price_1m) / price_1m) * 100
+            str_1m = f"{pct_1m:+.1f}%"
+        else:
+            str_1m = "N/A"
+
+        # --- CALCULATE 3 MONTHS (63 Sessions ago) ---
+        if len(df) >= 64:
+            price_3m = df['close'].iloc[-64]
+            pct_3m = ((current_price - price_3m) / price_3m) * 100
+            str_3m = f"{pct_3m:+.1f}%"
+        else:
+            str_3m = "N/A"
+
+        # --- CALCULATE 6 MONTHS (125 Sessions ago) ---
+        if len(df) >= 126:
+            price_6m = df['close'].iloc[-126]
+            pct_6m = ((current_price - price_6m) / price_6m) * 100
+            str_6m = f"{pct_6m:+.1f}%"
+        else:
+            str_6m = "N/A"
+
+        # --- CALCULATE 1 YEAR (250 Sessions ago) ---
+        if len(df) >= 251:
+            price_1y = df['close'].iloc[-251]
+            pct_1y = ((current_price - price_1y) / price_1y) * 100
+            str_1y = f"{pct_1y:+.1f}%"
+        else:
+            str_1y = "N/A"
+            
+        return {"1W": str_1w, "1M": str_1m, "3M": str_3m, "6M": str_6m, "1Y": str_1y}
+
+    except Exception as e:
+        print(f"Error calculating performance for {symbol}: {e}")
+        return {"1W": "N/A", "1M": "N/A", "3M": "N/A", "6M": "N/A", "1Y": "N/A"}

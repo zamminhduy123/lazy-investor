@@ -97,6 +97,7 @@ def get_news_from_db(symbol: str) -> List[Dict[str, Any]]:
     db = SessionLocal()
     try:
         today = date.today()
+        print(f"Checking news cache for {symbol} on {today}")
         results = db.query(StockNews).filter(
             StockNews.symbol == symbol,
             StockNews.fetched_at == today # Cache hit only for same day
@@ -137,6 +138,7 @@ def get_company_news(
 	# 0) Try DB Cache for today
 	db_news = get_news_from_db(symbol_u)
 	if db_news and len(db_news) > 0:
+		print(f"  > News cache hit for {symbol_u}, {len(db_news)} items.")
 		return _ok({"symbol": symbol_u, "data": db_news, "count": len(db_news)})
 
 	# 1) Try vnstock Company.news() first
@@ -152,6 +154,8 @@ def get_company_news(
 
 		data = to_jsonable(df)
 		# Normalize keys a bit (keep original fields but add a unified set when possible)
+  
+		print(f"  > Fetched {len(data)} news items from vnstock for {symbol_u}.")  
 		for item in data:
 			if isinstance(item, dict):
 				item.setdefault("source", "vnstock")

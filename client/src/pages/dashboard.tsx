@@ -1,9 +1,8 @@
 import { WatchlistRibbon } from "@/components/watchlist-ribbon";
 import { AIBriefingCard } from "@/components/ai-briefing-card";
 import { EvidenceFeed } from "@/components/evidence-feed";
-import { Stock } from "@/lib/mock-data";
-import { useStockStore, useNewsStore } from "@/store";
-import { usePriceBoard } from "@/hooks/useStocks";
+import { useStockStore, useNewsStore, Stock } from "@/store";
+// import { usePriceBoard } from "@/hooks/useStocks";
 import { useEffect, useMemo } from "react";
 
 export default function Dashboard() {
@@ -18,10 +17,10 @@ export default function Dashboard() {
   const { fetchNewsForSymbols, getNewsForSymbols } = useNewsStore();
 
   // Fetch price board data for watchlist symbols to keep data fresh
-  usePriceBoard(
-    watchlist.map((s) => s.symbol),
-    watchlist.length > 0
-  );
+  // usePriceBoard(
+  //   watchlist.map((s) => s.symbol),
+  //   watchlist.length > 0
+  // );
 
   const handleAddStock = (stock: Stock) => {
     addToWatchlist(stock);
@@ -37,7 +36,7 @@ export default function Dashboard() {
   }, [watchlist, fetchNewsForSymbols]);
 
   const feedNews = useMemo(() => {
-    const symbols = watchlist.map((s) => s.symbol);
+  const symbols = watchlist.map((s) => s.symbol);
     return getNewsForSymbols(symbols);
   }, [watchlist, getNewsForSymbols]);
 

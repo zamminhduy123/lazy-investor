@@ -72,6 +72,12 @@ def stock_info(symbols: str = Query(..., description="Comma-separated symbols, e
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
+@router.get("/stock-performance")
+def stock_performance(symbol: str = Query(..., min_length=1)):
+    result = stocks_service.get_stock_performance(symbol)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
 
 @router.get("/all-symbols")
 def all_symbols():

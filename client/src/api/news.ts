@@ -1,10 +1,5 @@
 import { fetchJson, getApiBaseUrl, toQueryString } from "./utils";
-
-export type NewsApiError = {
-  error: string;
-};
-
-export type NewsApiResult<T> = T | NewsApiError;
+import { ApiResult } from "./types";
 
 const API_BASE_URL = getApiBaseUrl();
 console.log("API_BASE_URL (news) =", API_BASE_URL);
@@ -57,7 +52,7 @@ export const newsApi = {
       fallback?: boolean; // maps to fallback_to_google on server
     }
   ) =>
-    fetchJson<NewsApiResult<T>>(
+    fetchJson<ApiResult<T>>(
       newsApi.urls.company(symbol, {
         limit: opts?.limit ?? 10,
         source: opts?.source ?? "VCI",
@@ -70,7 +65,7 @@ export const newsApi = {
     ),
 
   searchNews: <T = unknown>(q: string, options?: { signal?: AbortSignal }) =>
-    fetchJson<NewsApiResult<T>>(newsApi.urls.search(q), {
+    fetchJson<ApiResult<T>>(newsApi.urls.search(q), {
       signal: options?.signal,
       logPrefix: "[newsApi]",
     }),
@@ -79,7 +74,7 @@ export const newsApi = {
     params?: { limit?: number; symbols?: string[] },
     options?: { signal?: AbortSignal }
   ) =>
-    fetchJson<NewsApiResult<T>>(newsApi.urls.latest(params), {
+    fetchJson<ApiResult<T>>(newsApi.urls.latest(params), {
       signal: options?.signal,
       logPrefix: "[newsApi]",
     }),

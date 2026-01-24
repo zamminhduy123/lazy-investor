@@ -13,6 +13,7 @@ interface StockStoreContextValue {
   removeFromWatchlist: (symbol: string) => void;
   setSelectedSymbol: (symbol: string | null) => void;
   isInWatchlist: (symbol: string) => boolean;
+  updateItemInWatchlist: (stock: Stock) => void;
 }
 
 const STORAGE_KEY = "stock-me-watchlist";
@@ -23,17 +24,28 @@ interface StockStoreProviderProps {
   children: ReactNode;
   initialWatchlist?: Stock[];
 }
+function saveWatchlistToStorage(watchlist: Stock[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(watchlist));
+    console.log("Saved watchlist to localStorage:", watchlist);
+  } catch (e) {
+    console.error("Failed to save watchlist", e);
+  }
+}
 
 export function StockStoreProvider({ 
   children, 
   initialWatchlist = [] 
 }: StockStoreProviderProps) {
+
+
   
   // 1. Initialize state lazy-loading from localStorage
   const [watchlist, setWatchlist] = useState<Stock[]>(() => {
     if (initialWatchlist.length > 0) return initialWatchlist;
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
+      console.log("Loaded watchlist from localStorage:", stored);
       return stored ? JSON.parse(stored) : [];
     } catch (e) {
       console.error("Failed to load watchlist", e);
@@ -50,13 +62,28 @@ export function StockStoreProvider({
       }
       return [...prev, stock];
     });
+    saveWatchlistToStorage([...watchlist, stock]);
+  }, [watchlist]);
+
+  const updateItemInWatchlist = useCallback((stock: Stock) => {
+    setWatchlist((prev) => {
+      const index = prev.findIndex((s) => s.symbol === stock.symbol);
+      if (index === -1) {
+        return prev;
+      }
+      const newWatchlist = [...prev];
+      newWatchlist[index] = stock;
+      saveWatchlistToStorage(newWatchlist);
+      return newWatchlist;
+    });
   }, []);
 
   const removeFromWatchlist = useCallback((symbol: string) => {
     setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol));
     // Clear selection if removed stock was selected
     setSelectedSymbol((prev) => (prev === symbol ? null : prev));
-  }, []);
+    saveWatchlistToStorage(watchlist.filter((s) => s.symbol !== symbol));
+  }, [watchlist]);
 
   const isInWatchlist = useCallback(
     (symbol: string) => watchlist.some((s) => s.symbol === symbol),
@@ -70,7 +97,8 @@ export function StockStoreProvider({
     removeFromWatchlist,
     setSelectedSymbol,
     isInWatchlist,
-    setWatchlist
+    setWatchlist,
+    updateItemInWatchlist
   };
 
   return (

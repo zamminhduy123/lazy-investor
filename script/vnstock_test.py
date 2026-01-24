@@ -5,7 +5,7 @@ from pathlib import Path
 
 import feedparser
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from newspaper import Article
 from perplexity import Perplexity
 from dotenv import load_dotenv
@@ -24,7 +24,7 @@ MODEL_ID = "sonar"  # Perplexity model (or "sonar-pro" for pro version)
 WATCHLIST = ["HPG"]
 
 # Initialize Perplexity client (automatically uses PERPLEXITY_API_KEY from env)
-client = Perplexity()
+client = Perplexity(api_key=os.getenv("PERPLEXITY_API_KEY"))
 
 # --- MODULE 1: THE FREE DATA (vnstock) ---
 def get_market_context(symbol):
@@ -143,6 +143,52 @@ def analyze_article(symbol, price_context, title, content):
         print(f"    x AI Analysis Failed: {e}")
         return "{}"
 
+
+def get_stock_performance(symbol):
+    """
+    Calculates 1-Week and 1-Month performance.
+    Logic: 
+    - 1 Week approx = 5 trading sessions
+    - 1 Month approx = 20 trading sessions
+    """
+    try:
+        # Fetch 60 days of history to ensure we have enough trading days (skipping holidays)
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+        
+        quote = Quote(source="vci", symbol=symbol)
+        # Fetch Daily (1D) data
+        df = quote.history(start=start_date, end=end_date, interval='1D')
+        
+        if df.empty or len(df) < 2:
+            return {"1W": "N/A", "1M": "N/A"}
+
+        # Get the Latest Close Price (The last row)
+        current_price = df['close'].iloc[-1]
+        
+        # --- CALCULATE 1 WEEK (5 Sessions ago) ---
+        # We use -6 because -1 is today, so -6 is 5 days before today
+        if len(df) >= 6:
+            price_1w = df['close'].iloc[-6]
+            pct_1w = ((current_price - price_1w) / price_1w) * 100
+            str_1w = f"{pct_1w:+.1f}%" # Formats as +4.2% or -1.5%
+        else:
+            str_1w = "N/A"
+
+        # --- CALCULATE 1 MONTH (20 Sessions ago) ---
+        if len(df) >= 21:
+            price_1m = df['close'].iloc[-21]
+            pct_1m = ((current_price - price_1m) / price_1m) * 100
+            str_1m = f"{pct_1m:+.1f}%"
+        else:
+            str_1m = "N/A"
+            
+        return {"1W": str_1w, "1M": str_1m}
+
+    except Exception as e:
+        print(f"Error calculating performance for {symbol}: {e}")
+        return {"1W": "N/A", "1M": "N/A"}
+
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
     print(f"--- 🕵️ LAZY INVESTOR REPORT ({datetime.now().date()}) ---")
@@ -171,24 +217,25 @@ if __name__ == "__main__":
         # all_symbols = listing.symbols_by_exchange()
         # print("Fetched price board:", all_symbols.columns, quote.intraday(symbol=symbol, page_size=10_000, show_log=False).columns, quote.history(interval='1D', start=datetime.now().strftime("%Y-%m-%d"), end=datetime.now().strftime("%Y-%m-%d")))
         
+        print(get_stock_performance(symbol))
 
         
-        for news in news_list:
-            # 3. Scrape Content
-            try:
-                article = Article(news['link'])
-                article.download()
-                article.parse()
+        # for news in news_list:
+        #     # 3. Scrape Content
+        #     try:
+        #         article = Article(news['link'])
+        #         article.download()
+        #         article.parse()
                 
-                # Skip empty or very short articles
-                # if len(article.text) < 100: continue
+        #         # Skip empty or very short articles
+        #         # if len(article.text) < 100: continue
                 
-                # 4. AI Analysis
-                print(f"  > Reading: {news['title']}...")
-                ai_json = analyze_article(symbol, context, news['title'], article.text)
-                print(f"    🤖 AI: {ai_json}")
+        #         # 4. AI Analysis
+        #         print(f"  > Reading: {news['title']}...")
+        #         ai_json = analyze_article(symbol, context, news['title'], article.text)
+        #         print(f"    🤖 AI: {ai_json}")
                 
-            except Exception as e:
-                print(f"    x Failed to read article: {e}")
+        #     except Exception as e:
+        #         print(f"    x Failed to read article: {e}")
         
         

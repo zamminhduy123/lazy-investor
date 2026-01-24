@@ -19,6 +19,11 @@ class AnalysisResult(BaseModel):
     sentiment: str
     tldr: str
     score: int
+    relevance_reason: Optional[str] = None
+    key_drivers: Optional[List[str]] = None
+    rationale: Optional[str] = None
+    risks_or_caveats: Optional[List[str]] = None
+    confidence: Optional[float] = None
 
 class ArticleAnalysis(BaseModel):
     title: str

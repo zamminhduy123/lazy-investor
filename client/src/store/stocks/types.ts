@@ -162,7 +162,7 @@ export interface Stock {
   price: number;
   change: number;
   changePercent: number;
-  volume: string;
+  volume: number;
 }
 
 export type StockSymbol = {
@@ -172,4 +172,12 @@ export type StockSymbol = {
   organ_short_name: string;
   organ_name: string;
   product_grp_id: string;
+}
+
+export interface StockPerformanceData {
+  "1W": number;
+  "1M": number;
+  "3M": number;
+  "6M": number;
+  "1Y": number;
 }

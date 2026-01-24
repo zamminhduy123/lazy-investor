@@ -244,11 +244,13 @@ def analyze_stock(symbol: str) -> Dict[str, Any]:
             # 4. AI Analysis (Single)
             analysis = analyze_single_article(symbol, context, title, article.text)
             
+            print(f"Analyzed article: {title} | Analysis : {analysis}")
+            
             analyzed_articles.append({
                 "title": title,
                 "link": link,
                 "pubDate": news.get('published') or news.get('news_pub_date'), # vnstock key
-                "analysis": analysis if analysis else None
+                "analysis": analysis if analysis else None,
             })
             
         except Exception as e:
