@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState, ReactNode, useCallback } from "react";
 import { newsApi } from "@/api/news";
+import { ServerNews } from "@/api";
 
 export type NewsSource = "vci" | "google" | "auto";
 
@@ -10,7 +11,10 @@ export type NewsListItem = {
   url?: string;
   source: string;
   publishedAt?: string;
+  imageUrl: string;
   relatedSymbols: string[];
+  priceChangePct?: number;
+  refPrice?: number;
 };
 
 type NewsBySymbol = Record<string, NewsListItem[]>;
@@ -34,23 +38,22 @@ interface NewsStoreContextValue {
 
 const NewsStoreContext = createContext<NewsStoreContextValue | undefined>(undefined);
 
-function normalizeServerNews(symbol: string, raw: any): NewsListItem[] {
-  // Expecting server to return something like:
-  // { status: "ok", symbol, items: [{ title, link/url, published_at }, ...], source: "vci|google" }
-  const items: any[] = raw?.items ?? raw?.data ?? raw ?? [];
-  return items
-    .map((it) => {
-      const url = it.url ?? it.link;
-      const title = it.title ?? it.headline ?? "";
-      const publishedAt = it.published_at ?? it.publishedAt ?? it.pubDate;
+function normalizeServerNews(symbol: string, raw: ServerNews[]): NewsListItem[] {
+  return raw.map((it) => {
+      const url = it.link;
+      const title = it.title ?? it.news_title ?? "";
+      const publishedAt = it.public_date
 
       return {
         id: String(it.id ?? url ?? `${symbol}:${title}:${publishedAt ?? ""}`),
         title: String(title),
         url: url ? String(url) : undefined,
-        source: String(it.source ?? raw?.source ?? "news"),
+        source: String(it.source ?? "vnstock"),
         publishedAt: publishedAt ? String(publishedAt) : undefined,
         relatedSymbols: [symbol],
+        imageUrl: String(it.news_image_url ?? ""),
+        priceChangePct: typeof it.price_change_pct === "number" ? it.price_change_pct : undefined,
+        refPrice: typeof it.ref_price === "number" ? it.ref_price : undefined,
       } satisfies NewsListItem;
     })
     .filter((x) => x.title.length > 0);
@@ -86,6 +89,7 @@ export function NewsStoreProvider({ children }: { children: ReactNode }) {
   const fetchNewsForSymbols = useCallback(
     async (symbols: string[], opts?: { limit?: number }) => {
       const uniq = Array.from(new Set(symbols.map((s) => s.trim().toUpperCase()).filter(Boolean)));
+      console.log("Fetching news for symbols:", uniq);
       if (uniq.length === 0) return;
 
       // Only keep VNStock items as you requested: source="vci" and no google fallback
@@ -96,7 +100,8 @@ export function NewsStoreProvider({ children }: { children: ReactNode }) {
             source: "VCI",
             fallback: false,
           });
-          const normalized = normalizeServerNews(sym, raw);
+          console.log(`Fetched news for ${sym}:`, raw);
+          const normalized = normalizeServerNews(sym, raw?.data);
           setNewsForSymbol(sym, normalized);
         })
       );

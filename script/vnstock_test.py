@@ -9,11 +9,13 @@ from datetime import datetime, timedelta
 from newspaper import Article
 from perplexity import Perplexity
 from dotenv import load_dotenv
-from vnstock import Listing, Quote, Trading
+from vnstock import Listing, Quote, Trading, Company, Vnstock
 
 # Load .env file from parent directory (../)
 script_dir = Path(__file__).parent
-env_path = script_dir.parent / ".env"
+env_path = script_dir.parent / "server/.env"
+
+print(env_path)
 load_dotenv(env_path)
 
 # --- CONFIG ---
@@ -21,7 +23,7 @@ load_dotenv(env_path)
 
 # Get your Key: https://www.perplexity.ai/settings/api
 MODEL_ID = "sonar"  # Perplexity model (or "sonar-pro" for pro version)
-WATCHLIST = ["HPG"]
+WATCHLIST = ["FPT"]
 
 # Initialize Perplexity client (automatically uses PERPLEXITY_API_KEY from env)
 client = Perplexity(api_key=os.getenv("PERPLEXITY_API_KEY"))
@@ -144,6 +146,67 @@ def analyze_article(symbol, price_context, title, content):
         return "{}"
 
 
+
+def get_investment_signals(symbol):
+    """
+    Returns data to help decide: "Is this stock cheap? Will it pay me soon?"
+    """
+    signals = {
+        "dividend_alert": None,  # Will store text like "10% Cash (1,000đ)"
+        "ex_date": None,         # The deadline to buy
+        "pe_ratio": None,        # Valuation (Cheap vs Expensive)
+        "events": []             # Recent news/events
+    }
+    
+    try:
+        # 1. Setup Client (VCI source is usually best for fundamentals)
+        company = Company(symbol=symbol, source='VCI')
+        stock = Vnstock().stock(symbol=symbol, source="VCI")
+        # 1) Giá lịch sử (để lấy close)
+        price = stock.quote.history(start="2022-01-01", end="2025-12-31", interval="1D")
+        price["time"] = pd.to_datetime(price["time"], errors="coerce")
+        price = price.sort_values("time")
+
+        # --- SIGNAL B: EVENTS (The "News" Check) ---
+        # This is the function you found in the docs
+        events_df = company.events(page_size=40)
+        
+        div = events_df[events_df["en__event_list_name"].eq("Cash Dividend")].copy()
+        print("Cash", div["en__event_list_name"])
+        div["exright_date"] = pd.to_datetime(div["exright_date"], errors="coerce")
+
+        # 3) Lấy close của ngày gần nhất <= exright_date (xấp xỉ “giá trước GDKHQ”)
+        price2 = price.rename(columns={"time": "date"})
+        price2 = price2[["date", "close"]].dropna()
+
+        div = div.sort_values("exright_date")
+        price2 = price2.sort_values("date")
+
+        merged = pd.merge_asof(
+            div,
+            price2,
+            left_on="exright_date",
+            right_on="date",
+            direction="backward"
+        )
+        
+        print(merged.columns)
+
+        # 4) Tính yield
+        merged["dividend_yield"] = merged["value"] / merged["close"]
+        
+        # Only keep what matters for dividend cash or stock display
+        keep_cols = ['exright_date', 'en__event_list_name', 'value', 'ratio', 'close', 'dividend_yield']
+        merged = merged[keep_cols]
+        
+        print(merged.tail(10))
+        return merged
+
+    except Exception as e:
+        print(f"Signal Error for {symbol}: {e}")
+
+    return signals
+
 def get_stock_performance(symbol):
     """
     Calculates 1-Week and 1-Month performance.
@@ -200,8 +263,10 @@ if __name__ == "__main__":
         context = get_market_context(symbol)
         print(f"  > {context}")
         
+        print(get_investment_signals(symbol))
+        
         # 2. Get News (Free RSS)
-        news_list = get_free_news(symbol)
+        # news_list = get_free_news(symbol)
         # print(news_list)
         
         # trading = Trading(source="VCI")
@@ -217,7 +282,9 @@ if __name__ == "__main__":
         # all_symbols = listing.symbols_by_exchange()
         # print("Fetched price board:", all_symbols.columns, quote.intraday(symbol=symbol, page_size=10_000, show_log=False).columns, quote.history(interval='1D', start=datetime.now().strftime("%Y-%m-%d"), end=datetime.now().strftime("%Y-%m-%d")))
         
-        print(get_stock_performance(symbol))
+        # print(get_stock_performance(symbol))
+        
+        # print(get_upcoming_dividend(symbol))
 
         
         # for news in news_list:

@@ -20,5 +20,9 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Fix for HMR not updating: enable polling
+    watch: {
+      usePolling: true,
+    },
   },
 });

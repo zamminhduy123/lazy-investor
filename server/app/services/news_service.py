@@ -67,7 +67,7 @@ def save_news_to_db(symbol: str, news_list: List[Dict[str, Any]]):
             if not link_val: continue
             
             # Simple deduplication by link
-            existing = db.query(StockNews).filter(StockNews.link == link_val).first()
+            existing = db.query(StockNews).filter(StockNews.news_link == link_val).first()
             if not existing:
                 # Try to parse published date usually comes as string, but for now store string in title or new field? Do we need to parse?
                 # For this simple requirement, we just want to know we fetched it today or it belongs to "today".
@@ -78,12 +78,17 @@ def save_news_to_db(symbol: str, news_list: List[Dict[str, Any]]):
                 # We will set `fetched_at` to today.
                 
                 db_news = StockNews(
+                    id=item.get('id'),
                     symbol=symbol,
-                    title=item.get('title') or item.get('news_title'),
-                    link=link_val,
+                    news_title=item.get('news_title') or item.get('title'),
+                    news_link=link_val,
                     source=item.get('source'),
                     fetched_at=today,
-                    published=datetime.now() # Mock if parsing fails, ideally parse item.get('published')
+                    news_pub_date=item.get('news_pub_date') or item.get('public_date') or item.get('published'),
+                    news_image_url=item.get('news_image_url') or item.get('imageUrl'),
+                    ref_price=item.get('ref_price'),
+                    price_change_pct=item.get('price_change_pct'),
+                    public_date=item.get('published_at'),
                 )
                 db.add(db_news)
         db.commit()
@@ -100,18 +105,25 @@ def get_news_from_db(symbol: str) -> List[Dict[str, Any]]:
         print(f"Checking news cache for {symbol} on {today}")
         results = db.query(StockNews).filter(
             StockNews.symbol == symbol,
-            StockNews.fetched_at == today # Cache hit only for same day
+            StockNews.fetched_at == today 
         ).all()
-        
+
         data = []
-        for r in results:
-            data.append({
-                "title": r.title,
-                "link": r.link,
-                "source": r.source,
-                "published": str(r.published), # Return as string
-                "symbol": r.symbol
-            })
+        for news in results:
+            data.append(
+                {
+                    "id": news.id,
+                    "title": news.news_title,
+                    "news_title": news.news_title,
+                    "link": news.news_link,
+                    "news_link": news.news_link,
+                    "public_date": news.public_date,
+                    "source": news.source,
+                    "news_image_url": news.news_image_url,
+                    "ref_price": news.ref_price,
+                    "price_change_pct": news.price_change_pct
+                }
+            )
         return data
     finally:
         db.close()

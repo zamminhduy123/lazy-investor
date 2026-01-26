@@ -1,5 +1,5 @@
 import { fetchJson, getApiBaseUrl, toQueryString } from "./utils";
-import { ApiResult } from "./types";
+import { ApiResult, ApiSuccess, ServerNews } from "./types";
 
 const API_BASE_URL = getApiBaseUrl();
 console.log("API_BASE_URL (news) =", API_BASE_URL);
@@ -43,7 +43,7 @@ export const newsApi = {
       [newsApi.urls.latest(params)] as const,
   },
 
-  getCompanyNews: <T = unknown>(
+  getCompanyNews: <T = ServerNews[]>(
     symbol: string,
     opts?: {
       signal?: AbortSignal;
@@ -52,7 +52,7 @@ export const newsApi = {
       fallback?: boolean; // maps to fallback_to_google on server
     }
   ) =>
-    fetchJson<ApiResult<T>>(
+    fetchJson<ApiSuccess<T>>(
       newsApi.urls.company(symbol, {
         limit: opts?.limit ?? 10,
         source: opts?.source ?? "VCI",

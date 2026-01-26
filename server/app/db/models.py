@@ -30,16 +30,18 @@ class StockNews(Base):
     __tablename__ = "stock_news"
 
     id = Column(Integer, primary_key=True, index=True)
+    news_image_url = Column(String, nullable=True)
     symbol = Column(String, index=True)
-    title = Column(String)
-    link = Column(String)
-    published = Column(DateTime) # Store parseable datetime or string if needed, DateTime is better
+    news_title = Column(String)
+    news_link = Column(String)
+    news_pub_date = Column(DateTime)
     source = Column(String)
-    fetched_at = Column(Date, index=True) # To know which "day" we fetched this for
+    public_date = Column(Integer, nullable=True)
+    fetched_at = Column(Date, index=True)
+    ref_price = Column(Float, nullable=True)
+    price_change_pct = Column(Float, nullable=True)
 
     __table_args__ = (
-        # Avoid duplicate news for same symbol? Link is good unique identifier usually.
-        # But keeping it simple for now, maybe just unique on link?
-        UniqueConstraint('link', name='uix_news_link'),
+        UniqueConstraint('news_link', name='uix_news_link'),
     )
 
