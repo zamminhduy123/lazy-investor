@@ -18,8 +18,11 @@ export const useStockAnalysis = (symbol: string, options?: { enabled?: boolean }
       const res = await response.json();
       return res;
     },
-    enabled: options?.enabled ?? false, // Default to false to prevent auto-fetching (expensive AI API)
-    staleTime: 1000 * 60 * 30, // Consider fresh for 30 minutes
+    enabled: options?.enabled ?? !!symbol, // Auto-fetch if symbol exists, unless explicitly disabled
+    staleTime: 1000 * 60 * 60, // Consider fresh for 1 hour (expensive AI analysis)
+    gcTime: 1000 * 60 * 60 * 2, // Keep in cache for 2 hours after last use
     retry: 1,
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Use cached data if available when component mounts
   });
 };

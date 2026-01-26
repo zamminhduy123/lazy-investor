@@ -33,7 +33,6 @@ interface AIBriefingCardProps {
 }
 
 export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
-  const [state, setState] = useState<'idle' | 'analyzing' | 'complete'>('idle');
   const [expandedArticle, setExpandedArticle] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("summary");
   const [dateRange, setDateRange] = useState("today");
@@ -41,16 +40,10 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
   const { getNewsForSymbols } = useNewsStore();
   
   // Use the hook with the selected symbol
-  const { data, refetch } = useStockAnalysis(selectedSymbol || "");
-
-  useEffect(() => {
-    setState('analyzing');
-    refetch().then(() => setState('complete'));
-  }, [selectedSymbol]);
+  const { data, refetch, isFetching } = useStockAnalysis(selectedSymbol || "");
 
   const handleGenerate = () => {
-    setState('analyzing');
-    refetch().then(() => setState('complete'));
+    refetch()
   };
   const { data: performanceData }= useStockPerformance(selectedSymbol || "");
 
@@ -71,6 +64,17 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
     if (s === 'bearish') return <TrendingDown className="w-4 h-4 mr-1" />;
     return <Minus className="w-4 h-4 mr-1" />;
   };
+  
+  let show = 1
+  if (isFetching) {
+    if (data) {
+      show = 3
+    } else {
+      show = 2
+    }
+  } else if (data) {
+    show = 3
+  }
 
   return (
     <div className="w-full my-6">
@@ -114,7 +118,7 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
       </div>
 
       <AnimatePresence mode="wait">
-        {state === 'idle' && (
+        {show == 1 && (
           <motion.div
             key="idle"
             initial={{ opacity: 0, y: 10 }}
@@ -148,7 +152,7 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
           </motion.div>
         )}
 
-        {state === 'analyzing' && (
+        {show == 2 && (
           <motion.div
             key="analyzing"
             className="w-full h-[400px] bg-white border border-slate-200 rounded-2xl flex flex-col items-center justify-center"
@@ -164,7 +168,7 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
           </motion.div>
         )}
 
-        {state === 'complete' && (
+        {show == 3 && (
           <motion.div
             key="complete"
             initial={{ opacity: 0, scale: 0.98 }}
@@ -187,7 +191,7 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
                     <Coins className="w-3.5 h-3.5 mr-2" /> Dividends
                   </TabsTrigger>
                 </TabsList>
-                  <Button variant="ghost" size="icon" onClick={() => setState('idle')} className="h-8 w-8 text-slate-400 hover:text-slate-600 mr-1">
+                  <Button variant="ghost" size="icon" onClick={() => refetch()} className="h-8 w-8 text-slate-400 hover:text-slate-600 mr-1">
                     <History className="w-4 h-4" />
                   </Button>
               </div>

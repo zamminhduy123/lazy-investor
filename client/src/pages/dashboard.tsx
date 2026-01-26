@@ -54,8 +54,8 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content Area: Intelligence & News */}
-      <main className="flex-1 overflow-y-auto flex flex-col md:flex-row md:gap-4 px-4">
-        <div className="container max-w-4xl mx-auto py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <main className="flex-1 overflow-y-auto flex flex-col xl:flex-row xl:gap-4 px-4 py-8 xl:py-0">
+        <div className="container max-w-4xl mx-auto xl:py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <header className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Lazy Investor</h1>
@@ -74,7 +74,7 @@ export default function Dashboard() {
             <AIBriefingCard selectedSymbol={selectedSymbol} />
           </section>
         </div>
-        <div className="container max-w-4xl mx-auto py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="container max-w-4xl mx-auto xl:py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* Evidence Feed */}
           <EvidenceFeed news={feedNews} 
               selectedSymbol={selectedSymbol} />
