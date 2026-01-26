@@ -1,5 +1,5 @@
 import { fetchJson, getApiBaseUrl, toQueryString } from "./utils";
-import { QuoteInterval, ApiResult, SymbolsApiResponse, ServerStockInfo } from "./types";
+import { QuoteInterval, ApiResult, SymbolsApiResponse, ServerStockInfo, ServerDividendEvent } from "./types";
 import { StockPerformance } from "./types";
 
 const API_BASE_URL = getApiBaseUrl();
@@ -33,6 +33,8 @@ export const stocksApi = {
       })}`,
     stockPerformance: (symbol: string) =>
       `${STOCKS_BASE}/stock-performance${toQueryString({ symbol })}`,
+    dividendHistory: (symbol: string) =>
+      `${STOCKS_BASE}/dividend-history${toQueryString({ symbol })}`,
     symbols: () => `${STOCKS_BASE}/all-symbols`,
     indices: () => `${STOCKS_BASE}/indices`,
   },
@@ -54,6 +56,7 @@ export const stocksApi = {
     symbols: () => [stocksApi.urls.symbols()] as const,
     indices: () => [stocksApi.urls.indices()] as const,
     stockPerformance: (symbol: string) => [stocksApi.urls.stockPerformance(symbol)] as const,
+    dividendHistory: (symbol: string) => [stocksApi.urls.dividendHistory(symbol)] as const,
   },
 
   getQuote: <T = unknown>(
@@ -115,7 +118,13 @@ export const stocksApi = {
     }),
 
   getStockPerformance: <T = StockPerformance>(symbol: string, options?: { signal?: AbortSignal }) =>
-    fetchJson<ApiResult<T>>(stocksApi.urls.stockPerformance(symbol), {
+    fetchJson<T>(stocksApi.urls.stockPerformance(symbol), {
+      signal: options?.signal,
+      logPrefix: "[stocksApi]",
+    }),
+
+  getDividendHistory: <T = ServerDividendEvent[]>(symbol: string, options?: { signal?: AbortSignal }) =>
+    fetchJson<T>(stocksApi.urls.dividendHistory(symbol), {
       signal: options?.signal,
       logPrefix: "[stocksApi]",
     }),

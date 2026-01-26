@@ -2,17 +2,25 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import api_router
 import app.db  # Initialize DB and create tables
+from app.core.config import settings
 
-app = FastAPI()
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.api_version,
+    description="API for Stock Me 2 - RAG & Analysis",
+)
+
+# --- CORS CONFIGURATION ---
+origins = [
+    "http://localhost:5173",  # Client (Vite)
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+]
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        # "https://your-frontend-domain.com",
-    ],
+    allow_origins=origins,   # <--- Correct argument name
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

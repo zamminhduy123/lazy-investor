@@ -16,7 +16,8 @@ import {
   BarChart3,
   Newspaper,
   LayoutDashboard,
-  History
+  History,
+  Coins
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,7 @@ import { useStockAnalysis } from "@/api/analyse";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EvidenceFeed } from "./evidence-feed";
 import { useNewsStore } from "@/store";
-import { useStockPerformance } from "@/hooks";
+import { useDividendHistory, useStockPerformance } from "@/hooks";
 interface AIBriefingCardProps {
   selectedSymbol: string | null;
 }
@@ -39,25 +40,21 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
   
   const { getNewsForSymbols } = useNewsStore();
   
+  // Use the hook with the selected symbol
+  const { data, refetch } = useStockAnalysis(selectedSymbol || "");
+
   useEffect(() => {
-    setState('idle');
-    setExpandedArticle(null);
-    setActiveTab("summary");
-    refetch();
+    setState('analyzing');
+    refetch().then(() => setState('complete'));
   }, [selectedSymbol]);
 
   const handleGenerate = () => {
     setState('analyzing');
-    refetch();
-    setTimeout(() => {
-      setState('complete');
-    }, 1500);
+    refetch().then(() => setState('complete'));
   };
-
-  // Use the hook with the selected symbol
-  const { data, isLoading, isError, refetch } = useStockAnalysis(selectedSymbol || "");
-
   const { data: performanceData }= useStockPerformance(selectedSymbol || "");
+
+  const { data: dividendHistory }= useDividendHistory(selectedSymbol || "");
 
   const currentAnalysis = data || null;
 
@@ -185,6 +182,9 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
                   </TabsTrigger>
                   <TabsTrigger value="evidence" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg text-xs font-bold uppercase tracking-widest h-9">
                     <Newspaper className="w-3.5 h-3.5 mr-2" /> Evidence
+                  </TabsTrigger>
+                  <TabsTrigger value="dividends" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg text-xs font-bold uppercase tracking-widest h-9">
+                    <Coins className="w-3.5 h-3.5 mr-2" /> Dividends
                   </TabsTrigger>
                 </TabsList>
                   <Button variant="ghost" size="icon" onClick={() => setState('idle')} className="h-8 w-8 text-slate-400 hover:text-slate-600 mr-1">
@@ -379,6 +379,68 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
                 >
                   <EvidenceFeed news={selectedSymbol ? getNewsForSymbols([selectedSymbol]) : []} selectedSymbol={selectedSymbol} />
                 </motion.div>
+              </TabsContent>
+
+              <TabsContent value="dividends" className="mt-0 focus-visible:outline-none">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm"
+                >
+                  <div className="bg-slate-50/50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center">
+                      <Coins className="w-3 h-3 mr-2" />
+                      Dividend History
+                      {selectedSymbol && <span className="ml-2 text-slate-400 font-normal">/ {selectedSymbol}</span>}
+                    </h3>
+                  </div>
+                  <div className="overflow-auto max-h-80 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                    <table className="w-full text-left border-collapse relative">
+                      <thead className="sticky top-0 z-10 shadow-sm">
+                        <tr className="bg-slate-100/95 backdrop-blur-sm border-b border-slate-200">
+                          <th className="px-6 py-3 text-[10px] font-black text-slate-500 uppercase tracking-tighter">Ex-Date</th>
+                          <th className="px-6 py-3 text-[10px] font-black text-slate-500 uppercase tracking-tighter">Description</th>
+                          <th className="px-6 py-3 text-[10px] font-black text-slate-500 uppercase tracking-tighter">Type</th>
+                          <th className="px-6 py-3 text-[10px] font-black text-slate-500 uppercase tracking-tighter text-right">Value/Ratio</th>
+                          <th className="px-6 py-3 text-[10px] font-black text-slate-500 uppercase tracking-tighter text-right">Yield</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50 bg-white">
+                        {(dividendHistory || [])?.map((div: any, i: number) => (
+                          <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-6 py-4 text-xs font-mono font-bold text-slate-600">{div.date}</td>
+                            <td className="px-6 py-4">
+                              <div className="text-xs font-bold text-slate-900 leading-tight">{div.title}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <Badge variant="outline" className={cn(
+                                "text-[9px] font-bold uppercase tracking-tighter px-1.5 py-0 rounded",
+                                div.type === 'CASH' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-blue-50 text-blue-600 border-blue-100"
+                              )}>
+                                {div.type}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className="text-xs font-mono font-bold text-slate-700">
+                                {div.type === 'CASH' ? `${div.value.toLocaleString()}₫` : `${(div.ratio * 100).toFixed(0)}%`}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className="text-xs font-mono font-bold text-emerald-600">
+                                {div.yield_percent ? `${(div.yield_percent / 100).toFixed(2)}%` : '—'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {(!dividendHistory || dividendHistory.length === 0) && (
+                      <div className="p-12 text-center text-slate-400 text-sm">
+                        No dividend data available for {selectedSymbol} in this prototype.
+                      </div>
+                    )}
+                  </div>
+                  </motion.div>
               </TabsContent>
             </Tabs>
           </motion.div>

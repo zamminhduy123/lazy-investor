@@ -12,6 +12,7 @@ import type {
   StockQuoteData,
   StockPerformanceData
 } from "@/store/stocks/types";
+import { ServerDividendEvent } from "@/api/types";
 
 /**
  * Hook to fetch stock quote/history data
@@ -140,6 +141,16 @@ export function useStockPerformance(symbol: string | null, enabled = true) {
       stocksApi.getStockPerformance<StockPerformanceData>(symbol!) as Promise<StockPerformanceData>,
     enabled: !!symbol && enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useDividendHistory(symbol: string | null, enabled = true) {
+  return useQuery<ServerDividendEvent[]>({
+    queryKey: stocksApi.queryKeys.dividendHistory(symbol || ""),
+    queryFn: () =>
+      stocksApi.getDividendHistory<ServerDividendEvent[]>(symbol!) as Promise<ServerDividendEvent[]>,
+    enabled: !!symbol && enabled,
+    staleTime: 60 * 60 * 1000, // 1 hour
   });
 }
 

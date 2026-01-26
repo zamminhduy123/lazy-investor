@@ -244,7 +244,7 @@ def analyze_stock(symbol: str) -> Dict[str, Any]:
             # 4. AI Analysis (Single)
             analysis = analyze_single_article(symbol, context, title, article.text)
             
-            print(f"Analyzed article: {title} | Analysis : {analysis}")
+            # print(f"Analyzed article: {title} | Analysis : {analysis}")
             
             analyzed_articles.append({
                 "title": title,

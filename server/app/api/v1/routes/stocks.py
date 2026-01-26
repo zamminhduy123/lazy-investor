@@ -79,6 +79,13 @@ def stock_performance(symbol: str = Query(..., min_length=1)):
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
+@router.get("/dividend-history")
+def dividend_history(symbol: str = Query(..., min_length=1)):
+    result = stocks_service.get_stock_dividends(symbol)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
 @router.get("/all-symbols")
 def all_symbols():
     result = stocks_service.get_all_symbols()

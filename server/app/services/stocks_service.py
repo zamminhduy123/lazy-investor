@@ -454,3 +454,130 @@ def get_stock_performance(symbol: str) -> Dict[str, Any]:
     except Exception as e:
         print(f"Error calculating performance for {symbol}: {e}")
         return {"1W": "N/A", "1M": "N/A", "3M": "N/A", "6M": "N/A", "1Y": "N/A"}
+    
+def get_stock_dividends(symbol: str) -> Dict[str, Any]:
+    """
+    Fetches dividend events (cash and stock), matches them with historical price
+    to calculating approximate yield at the time of the event.
+    """
+    try:
+        symbol = symbol.upper()
+        
+        # 1. Fetch Company Events using vnstock
+        company = Company(symbol=symbol, source='VCI')
+        try:
+            events_df = company.events(page_size=50) # Fetch enough recent events
+        except Exception:
+            # Fallback if VCI fails or empty
+            return _err(f"No event data available for {symbol}")
+
+        if events_df is None or events_df.empty:
+             return _ok({"symbol": symbol, "data": []})
+
+        # 2. Filter for Dividends (Cash or Stock)
+        # Keywords: "cổ tức" (dividend), "trả" (pay), "thưởng" (bonus/reward)
+        dividend_mask = (
+            events_df["event_title"].str.contains("cổ tức", case=False, na=False) |
+            events_df["event_title"].str.contains("thưởng", case=False, na=False) |
+             events_df["event_title"].str.contains("trả", case=False, na=False)
+        )
+        
+        div_df = events_df[dividend_mask].copy()
+        
+        if div_df.empty:
+             return _ok({"symbol": symbol, "data": []})
+
+        # Ensure dates are datetime objects
+        div_df["exright_date"] = pd.to_datetime(div_df["exright_date"], errors="coerce")
+        div_df = div_df.dropna(subset=['exright_date']).sort_values("exright_date")
+
+        # 3. Fetch History to calculate Yield (Yield = Dividend Value / Price at Ex-Date)
+        # We need a range covering the oldest event to today
+        min_date = div_df["exright_date"].min()
+        start_str = (min_date - timedelta(days=5)).strftime("%Y-%m-%d")
+        end_str = datetime.now().strftime("%Y-%m-%d")
+
+        quote = Quote(source="VCI", symbol=symbol)
+        price_df = quote.history(start=start_str, end=end_str, interval="1D")
+
+        results = []
+        
+        if not price_df.empty:
+            price_df["time"] = pd.to_datetime(price_df["time"], errors="coerce")
+            price_df = price_df.sort_values("time")
+            
+            # Prepare for merge_asof
+            price_sub = price_df[["time", "close"]].rename(columns={"time": "date"}).dropna()
+            
+            # Merge events with price (find last price <= exright_date)
+            merged = pd.merge_asof(
+                div_df,
+                price_sub,
+                left_on="exright_date",
+                right_on="date",
+                direction="backward" 
+            )
+            merged.fillna(0)
+
+            # Process individual rows
+            for _, row in merged.iterrows():
+                # Extract value
+                val = row.get('value')
+                ratio = row.get('ratio')
+                
+                # Try convert value to float, handle '0' or None
+                try:
+                    val_float = float(val) if val else 0.0
+                except (ValueError, TypeError):
+                    val_float = 0.0
+                
+                # Calculate Yield if it's a cash dividend (value > 0)
+                div_yield = 0.0
+                close_price = row.get('close')
+                
+                if val_float > 0 and close_price and close_price > 0:
+                    div_yield = (val_float / close_price) * 100
+
+                # Determine Type
+                event_type = "STOCK"
+                if "tiền" in str(row.get("event_title", "")).lower() or val_float > 0:
+                    event_type = "CASH"
+
+                # Sanitize output to handle NaN values from pandas operations
+                safe_val = val_float if not pd.isna(val_float) else 0.0
+                safe_ratio = ratio if not pd.isna(ratio) else None
+                safe_close = close_price if not pd.isna(close_price) else None
+                safe_yield = round(div_yield, 2) if (event_type == "CASH" and not pd.isna(div_yield)) else None
+
+                results.append({
+                    "date": row["exright_date"].strftime("%Y-%m-%d"),
+                    "title": row.get("event_title"),
+                    "type": event_type,
+                    "value": safe_val,
+                    "ratio": safe_ratio,
+                    "price_at_ex": safe_close,
+                    "yield_percent": safe_yield
+                })
+        else:
+             # If price history fails, return events without yield info
+             for _, row in div_df.iterrows():
+                results.append({
+                    "date": row["exright_date"].strftime("%Y-%m-%d"),
+                    "title": row.get("event_title"),
+                    "type": "UNKNOWN",
+                    "value": row.get('value'),
+                    "ratio": row.get('ratio'),
+                    "price_at_ex": None,
+                    "yield_percent": None
+                })
+
+        # Sort by date descending
+        results.sort(key=lambda x: x["date"], reverse=True)
+        # results.fillna(0)
+        print(f"Fetched {results[0]} dividend events for {symbol}")
+        
+        return to_jsonable(results)
+
+    except Exception as e:
+        print(f"Error fetching dividends for {symbol}: {e}")
+        return _err(f"Failed to fetch dividend events: {str(e)}")
