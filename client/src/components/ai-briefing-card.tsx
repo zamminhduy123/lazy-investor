@@ -23,11 +23,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useStockAnalysis } from "@/api/analyse";
+// import { useStockAnalysis } from "@/api/analyse";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EvidenceFeed } from "./evidence-feed";
 import { useNewsStore } from "@/store";
 import { useDividendHistory, useStockPerformance } from "@/hooks";
+import { useStockAnalysisStream } from "@/hooks/useStockAnalysisStream";
+
 interface AIBriefingCardProps {
   selectedSymbol: string | null;
 }
@@ -36,20 +38,39 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
   const [expandedArticle, setExpandedArticle] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("summary");
   const [dateRange, setDateRange] = useState("today");
+
+  const { 
+    events, 
+    isStreaming, 
+    finalResult, 
+    error, 
+    progress,
+    startAnalysis 
+  } = useStockAnalysisStream(selectedSymbol);
+
+  // Get latest status message from events
+  const latestStatus = events
+    .filter(e => e.type === 'status')
+    .slice(-1)[0]?.data?.message || '';
+
+  // Collect analyzed articles as they arrive
+  const analyzedArticles = events
+    .filter(e => e.type === 'article_analyzed')
+    .map(e => e.data.article);
   
   const { getNewsForSymbols } = useNewsStore();
   
   // Use the hook with the selected symbol
-  const { data, refetch, isFetching } = useStockAnalysis(selectedSymbol || "");
+  // const { data, refetch, isFetching } = useStockAnalysis(selectedSymbol || "");
 
   const handleGenerate = () => {
-    refetch()
+    startAnalysis()
   };
   const { data: performanceData }= useStockPerformance(selectedSymbol || "");
 
   const { data: dividendHistory }= useDividendHistory(selectedSymbol || "");
 
-  const currentAnalysis = data || null;
+  const currentAnalysis = finalResult || null;
 
   const getSentimentStyles = (sentiment: string) => {
     const s = sentiment.toLowerCase();
@@ -65,16 +86,16 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
     return <Minus className="w-4 h-4 mr-1" />;
   };
   
-  let show = 1
-  if (isFetching) {
-    if (data) {
-      show = 3
-    } else {
-      show = 2
-    }
-  } else if (data) {
-    show = 3
-  }
+  // let show = 1
+  // if (isFetching) {
+  //   if (data) {
+  //     show = 3
+  //   } else {
+  //     show = 2
+  //   }
+  // } else if (data) {
+  //   show = 3
+  // }
 
   return (
     <div className="w-full my-6">
@@ -118,7 +139,7 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
       </div>
 
       <AnimatePresence mode="wait">
-        {show == 1 && (
+        {!finalResult && !isStreaming && (
           <motion.div
             key="idle"
             initial={{ opacity: 0, y: 10 }}
@@ -152,7 +173,7 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
           </motion.div>
         )}
 
-        {show == 2 && (
+        {/* {show == 2 && (
           <motion.div
             key="analyzing"
             className="w-full h-[400px] bg-white border border-slate-200 rounded-2xl flex flex-col items-center justify-center"
@@ -166,9 +187,44 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
             <h4 className="text-xl font-bold text-slate-900 mb-2">Synthesizing Reports</h4>
             <p className="text-slate-400 font-mono text-sm">Evaluating relevance & sentiment...</p>
           </motion.div>
+        )} */}
+
+        {isStreaming && (
+          <motion.div key="streaming" className="bg-white border rounded-2xl p-8">
+            <div className="relative mb-8">
+              <Loader2 className="w-10 h-10 text-slate-900 animate-spin mx-auto" />
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-xs text-slate-500 mb-2">
+                <span>{latestStatus}</span>
+                <span>{progress.step}/{progress.total}</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2">
+                <div 
+                  className="bg-slate-900 h-2 rounded-full transition-all"
+                  style={{ width: `${(progress.step / progress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Show analyzed articles as they come in */}
+            {analyzedArticles.length > 0 && (
+              <div className="mt-6 space-y-2">
+                <h4 className="text-sm font-bold text-slate-700">Articles Analyzed:</h4>
+                {analyzedArticles.map((article, i) => (
+                  <div key={i} className="text-xs text-slate-600 flex items-center gap-2">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" />
+                    {article.title}
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
         )}
 
-        {show == 3 && (
+        {finalResult && (
           <motion.div
             key="complete"
             initial={{ opacity: 0, scale: 0.98 }}
@@ -191,9 +247,9 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
                     <Coins className="w-3.5 h-3.5 mr-2" /> Dividends
                   </TabsTrigger>
                 </TabsList>
-                  <Button variant="ghost" size="icon" onClick={() => refetch()} className="h-8 w-8 text-slate-400 hover:text-slate-600 mr-1">
-                    <History className="w-4 h-4" />
-                  </Button>
+                <Button variant="ghost" size="icon" onClick={() => console.log("Fetch")} className="h-8 w-8 text-slate-400 hover:text-slate-600 mr-1">
+                  <History className="w-4 h-4" />
+                </Button>
               </div>
 
               <TabsContent value="summary" className="mt-0 focus-visible:outline-none">

@@ -1,7 +1,3 @@
-export type ApiError = {
-	error: string;
-};
-
 /**
  * Build a stable query string from an object.
  * Undefined values are omitted.
