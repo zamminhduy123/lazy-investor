@@ -2,6 +2,12 @@
 
 A comprehensive stock analysis dashboard offering real-time market data and AI-powered news sentiment analysis for the Vietnamese stock market.
 
+## System Architecture
+
+The diagram below shows the high-level data flow between the client, server, worker, and external services.
+
+![System architecture](images/system_operation.png)
+
 ## Project Overview
 
 Lazy Investor aims to simplify investment decisions by aggregating financial data and providing automated analysis. It combines quantitative market data with qualitative news analysis using Perplexity AI to assess the impact of news on stock prices.
