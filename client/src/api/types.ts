@@ -99,3 +99,21 @@ export interface ServerNews {
   source: string;
   price_change_pct: number;
 }
+export interface WatchlistItem {
+  id: number;
+  symbol: string;
+  added_at: string;
+  stock_info?: ServerStockInfo | null;
+}
+
+export interface WatchlistResponse {
+  status: string;
+  data: WatchlistItem[];
+  total: number;
+}
+
+export interface AddToWatchlistResponse {
+  status: string;
+  message: string;
+  data: WatchlistItem;
+}

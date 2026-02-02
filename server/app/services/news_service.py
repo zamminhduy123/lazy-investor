@@ -4,6 +4,9 @@ from typing import Any, Dict, List, Optional
 
 import feedparser
 from vnstock import Company
+from datetime import datetime, date
+from app.db.session import SessionLocal
+from app.db.models import StockNews
 
 from app.utils.stock_utils import to_jsonable
 
@@ -53,59 +56,83 @@ def _parse_google_news_rss(symbol: str, limit: int = 5, lang: str = "vi") -> Lis
 	return items
 
 
-from datetime import datetime, date
-from app.db.session import SessionLocal
-from app.db.models import StockNews
+def _parse_datetime(value: Any) -> Optional[datetime]:
+	if value is None:
+		return None
+	if isinstance(value, datetime):
+		return value
+	if isinstance(value, date):
+		return datetime.combine(value, datetime.min.time())
+	if isinstance(value, (int, float)):
+		# Heuristic: treat > 1e12 as ms timestamp
+		ts = value / 1000 if value > 1_000_000_000_000 else value
+		try:
+			return datetime.fromtimestamp(ts)
+		except Exception:
+			return None
+	if isinstance(value, str):
+		for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d/%m/%Y", "%Y/%m/%d"):
+			try:
+				return datetime.strptime(value, fmt)
+			except Exception:
+				continue
+		try:
+			return datetime.fromisoformat(value.replace("Z", "+00:00"))
+		except Exception:
+			return None
+	return None
+
+
+
 
 
 def save_news_to_db(symbol: str, news_list: List[Dict[str, Any]]):
-    db = SessionLocal()
-    try:
-        today = date.today()
-        for item in news_list:
-            link_val = item.get('link') or item.get('news_link') or ""
-            if not link_val: continue
-            
-            # Simple deduplication by link
-            existing = db.query(StockNews).filter(StockNews.news_link == link_val).first()
-            if not existing:
-                # Try to parse published date usually comes as string, but for now store string in title or new field? Do we need to parse?
-                # For this simple requirement, we just want to know we fetched it today or it belongs to "today".
-                # The model expects DateTime for `published`.
-                pub_date = None
-                # ... date parsing logic ...
-                # skipping complex parsing for now, user just says "in that day". 
-                # We will set `fetched_at` to today.
-                
-                db_news = StockNews(
-                    id=item.get('id'),
-                    symbol=symbol,
-                    news_title=item.get('news_title') or item.get('title'),
-                    news_link=link_val,
-                    source=item.get('source'),
-                    fetched_at=today,
-                    news_pub_date=item.get('news_pub_date') or item.get('public_date') or item.get('published'),
-                    news_image_url=item.get('news_image_url') or item.get('imageUrl'),
-                    ref_price=item.get('ref_price'),
-                    price_change_pct=item.get('price_change_pct'),
-                    public_date=item.get('published_at'),
-                )
-                db.add(db_news)
-        db.commit()
-    except Exception as e:
-        print(f"Error saving news: {e}")
-        db.rollback()
-    finally:
-        db.close()
+	db = SessionLocal()
+	try:
+		today = date.today()
+		for item in news_list:
+			link_val = item.get('link') or item.get('news_link') or ""
+			if not link_val:
+				continue
 
-def get_news_from_db(symbol: str) -> List[Dict[str, Any]]:
+			# Simple deduplication by link
+			existing = db.query(StockNews).filter(StockNews.news_link == link_val).first()
+			if not existing:
+				raw_pub_date = (
+					item.get('news_pub_date')
+					or item.get('public_date')
+					or item.get('published')
+				)
+				pub_date = _parse_datetime(raw_pub_date)
+
+				db_news = StockNews(
+					id=item.get('id'),
+					symbol=symbol,
+					news_title=item.get('news_title') or item.get('title'),
+					news_link=link_val,
+					source=item.get('source'),
+					fetched_at=today,
+					news_pub_date=pub_date,
+					news_image_url=item.get('news_image_url') or item.get('imageUrl'),
+					ref_price=item.get('ref_price'),
+					price_change_pct=item.get('price_change_pct'),
+					public_date=item.get('published_at'),
+				)
+				db.add(db_news)
+		db.commit()
+	except Exception as e:
+		print(f"Error saving news: {e}")
+		db.rollback()
+	finally:
+		db.close()
+
+def get_news_from_db(symbol: str, date: date) -> List[Dict[str, Any]]:
     db = SessionLocal()
     try:
-        today = date.today()
-        print(f"Checking news cache for {symbol} on {today}")
+        print(f"Checking news cache for {symbol} on {date}")
         results = db.query(StockNews).filter(
             StockNews.symbol == symbol,
-            StockNews.fetched_at == today 
+            StockNews.fetched_at == date 
         ).all()
 
         data = []
@@ -147,55 +174,36 @@ def get_company_news(
 	if not symbol_u:
 		return _err("symbol is required")
 
-	# 0) Try DB Cache for today
-	db_news = get_news_from_db(symbol_u)
+	# 0) Try DB Cache for today (do not limit cached results)
+	db_news = get_news_from_db(symbol_u, date.today())
 	if db_news and len(db_news) > 0:
 		print(f"  > News cache hit for {symbol_u}, {len(db_news)} items.")
 		return _ok({"symbol": symbol_u, "data": db_news, "count": len(db_news)})
 
-	# 1) Try vnstock Company.news() first
+	# 1) Fetch from vnstock and cache to DB (once per day)
 	try:
 		company = Company(symbol=symbol_u, source=source)
 		df = company.news()
 		if getattr(df, "empty", True) or len(df) == 0:
-			raise ValueError("vnstock returned no news")
+			return _no_data(
+				{"symbol": symbol_u, "data": [], "count": 0},
+				"No news available from vnstock.",
+			)
 
-		# vnstock returns a DataFrame; convert to list of dicts early
-		if hasattr(df, "head"):
+		if hasattr(df, "head") and limit is not None:
 			df = df.head(max(0, int(limit)))
 
 		data = to_jsonable(df)
-		# Normalize keys a bit (keep original fields but add a unified set when possible)
-  
-		print(f"  > Fetched {len(data)} news items from vnstock for {symbol_u}.")  
+		print(f"  > Fetched {len(data)} news items from vnstock for {symbol_u}.")
 		for item in data:
 			if isinstance(item, dict):
 				item.setdefault("source", "vnstock")
-				# common vnstock column names seen in `news_script.py`
 				if "title" not in item and "news_title" in item:
 					item["title"] = item.get("news_title")
 				if "link" not in item:
 					item["link"] = item.get("news_source_link") or item.get("news_link")
 
-		# Save to DB
 		save_news_to_db(symbol_u, data)
-		
 		return _ok({"symbol": symbol_u, "data": data, "count": len(data)})
 	except Exception as e:
-		# 2) Fallback to Google RSS
-		if not fallback_to_google:
-			return _err(f"Failed to fetch news: {str(e)}", symbol=symbol_u)
-
-		try:
-			items = _parse_google_news_rss(symbol_u, limit=limit)
-			if len(items) == 0:
-				return _no_data(
-					{"symbol": symbol_u, "data": [], "count": 0},
-					"No news available.",
-				)
-			return _ok({"symbol": symbol_u, "data": items, "count": len(items)})
-		except Exception as e2:
-			return _err(
-				f"Failed to fetch news from vnstock and fallback RSS: {str(e2)}",
-				symbol=symbol_u,
-			)
+		return _err(f"Failed to fetch news: {str(e)}", symbol=symbol_u)

@@ -16,3 +16,5 @@
  */
 
 export * from "./useStocks";
+export * from "./useSignals";
+export * from "./useStockAnalysisStream";

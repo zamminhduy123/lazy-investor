@@ -10,7 +10,7 @@ export function priceBoardEntryToStock(entry: PriceBoardEntry): Stock {
     price: entry.price,
     change: entry.change,
     changePercent: entry.changePercent,
-    volume: entry.volume.toString(),
+    volume: entry.volume,
   };
 }
 

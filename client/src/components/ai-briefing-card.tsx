@@ -11,10 +11,8 @@ import {
   ExternalLink,
   ShieldAlert,
   Target,
-  Calendar,
   Filter,
   BarChart3,
-  Newspaper,
   LayoutDashboard,
   History,
   Coins,
@@ -23,9 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-// import { useStockAnalysis } from "@/api/analyse";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EvidenceFeed } from "./evidence-feed";
 import { useDividendHistory, useStockPerformance } from "@/hooks";
 import { useStockAnalysisStream } from "@/hooks/useStockAnalysisStream";
 
@@ -40,9 +36,12 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
   const {
     events,
     isStreaming,
+    isLoading,
     finalResult,
+    weeklySummary,
     error,
     progress,
+    dataSource,
     startAnalysis,
     forceRefresh,
     hasCachedData,
@@ -96,7 +95,7 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
   // }
 
   return (
-    <div className="w-full xl:flex-1 my-6">
+    <div className="w-full xl:my-0 my-6 flex flex-1 flex-col min-h-0">
       {/* Tool Box Header */}
       <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-2">
@@ -160,7 +159,7 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-1 flex-col min-h-0">
         <div className="flex items-center justify-between mb-4 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
           <TabsList className="bg-transparent gap-1">
             {finalResult && <TabsTrigger
@@ -205,11 +204,23 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
           >
             {finalResult ? (
               <>
-                {hasCachedData && (
-                  <div className="px-3 pt-4">
-                    <Badge variant="outline" className="text-xs">
-                      📦 Cached Data
-                    </Badge>
+                {(hasCachedData || dataSource) && (
+                  <div className="px-3 pt-4 flex items-center gap-2">
+                    {dataSource === 'instant' && (
+                      <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                        ⚡ Instant Pre-Analyzed
+                      </Badge>
+                    )}
+                    {dataSource === 'stream' && hasCachedData && (
+                      <Badge variant="outline" className="text-xs">
+                        📦 Cached Streamed Data
+                      </Badge>
+                    )}
+                    {!dataSource && hasCachedData && (
+                      <Badge variant="outline" className="text-xs">
+                        📦 Cached Data
+                      </Badge>
+                    )}
                   </div>
                 )}
                 <div className="p-1 h-1 bg-linear-to-r from-slate-900 via-slate-700 to-slate-900" />
@@ -361,10 +372,10 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
 
         <TabsContent
           value="deepdive"
-          className="mt-0 focus-visible:outline-none"
+          className="mt-0 focus-visible:outline-none flex flex-1 flex-col min-h-0"
         >
           <AnimatePresence mode="wait">
-            {!finalResult && !isStreaming && (
+            {!finalResult && !isStreaming && !isLoading && (
               <motion.div
                 key="idle"
                 initial={{ opacity: 0, y: 10 }}
@@ -382,8 +393,8 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
                   </h3>
                   <p className="text-slate-500 mb-8 max-w-sm mx-auto leading-relaxed">
                     {selectedSymbol
-                      ? `Perform a comprehensive AI evaluation of ${selectedSymbol} based on latest regulatory filings and news.`
-                      : "Select a stock to generate a premium executive market briefing."}
+                      ? `No pre-analyzed data available for ${selectedSymbol}. Run a custom analysis using latest news (slow).`
+                      : "Select a stock to view pre-analyzed intelligence or generate a custom report."}
                   </p>
                   <Button
                     onClick={handleGenerate}
@@ -392,9 +403,22 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
                     className="bg-slate-900 hover:bg-slate-800 text-white px-10 rounded-full shadow-xl transition-all active:scale-95"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Generate {selectedSymbol} Intelligence
+                    Generate Custom Analysis (Slow)
                   </Button>
                 </div>
+              </motion.div>
+            )}
+
+            {isLoading && !isStreaming && (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-white border rounded-2xl p-8 flex flex-col items-center"
+              >
+                <Loader2 className="w-10 h-10 text-slate-900 animate-spin mx-auto mb-4" />
+                <p className="text-slate-600 text-sm">Loading pre-analyzed data...</p>
               </motion.div>
             )}
 
@@ -608,12 +632,12 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
 
         <TabsContent
           value="dividends"
-          className="mt-0 focus-visible:outline-none flex-1"
+          className="mt-0 focus-visible:outline-none flex flex-1 flex-col min-h-0"
         >
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm xl:flex xl:flex-col"
+            className="bg-white border border-slate-200 rounded-2xl shadow-sm xl:flex xl:flex-col flex-1 min-h-0"
           >
             <div className="bg-slate-50/50 px-3 py-4 border-b border-slate-100 flex justify-between items-center xl:shrink-0">
               <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center">
@@ -626,7 +650,7 @@ export function AIBriefingCard({ selectedSymbol }: AIBriefingCardProps) {
                 )}
               </h3>
             </div>
-            <div className="overflow-auto xl:flex-1 max-h-max scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+            <div className="overflow-auto flex-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
               <table className="w-full text-left border-collapse relative">
                 <thead className="sticky top-0 z-10 shadow-sm">
                   <tr className="bg-slate-100/95 backdrop-blur-sm border-b border-slate-200">

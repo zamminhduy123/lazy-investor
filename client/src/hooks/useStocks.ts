@@ -1,4 +1,4 @@
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 import { stocksApi } from "@/api/stocks";
 import type {
   StockQuoteResponse,
@@ -12,7 +12,7 @@ import type {
   StockQuoteData,
   StockPerformanceData
 } from "@/store/stocks/types";
-import { ServerDividendEvent } from "@/api/types";
+import { ServerDividendEvent, WatchlistResponse, AddToWatchlistResponse } from "@/api/types";
 
 /**
  * Hook to fetch stock quote/history data
@@ -206,4 +206,47 @@ export function useStockData(symbol: string | null, enabled = true) {
     isError: quote.isError || intraday.isError || companyInfo.isError || priceDepth.isError,
     error: quote.error || intraday.error || companyInfo.error || priceDepth.error,
   };
+}
+
+/**
+ * Hook to fetch watchlist from server
+ * Returns watchlist with embedded stock info (no separate fetch needed)
+ */
+export function useWatchlist() {
+  return useQuery<WatchlistResponse>({
+    queryKey: stocksApi.queryKeys.watchlist(),
+    queryFn: () => stocksApi.getWatchlist(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Hook to add stock to watchlist
+ * Returns the added item with stock info included
+ */
+export function useAddToWatchlist() {
+  const queryClient = useQueryClient();
+  
+  return useMutation<AddToWatchlistResponse, Error, string>({
+    mutationFn: (symbol: string) => stocksApi.addToWatchlist(symbol),
+    onSuccess: () => {
+      // Invalidate watchlist query to refetch
+      queryClient.invalidateQueries({ queryKey: stocksApi.queryKeys.watchlist() });
+    },
+  });
+}
+
+/**
+ * Hook to remove stock from watchlist
+ */
+export function useRemoveFromWatchlist() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (symbol: string) => stocksApi.removeFromWatchlist(symbol),
+    onSuccess: () => {
+      // Invalidate watchlist query to refetch
+      queryClient.invalidateQueries({ queryKey: stocksApi.queryKeys.watchlist() });
+    },
+  });
 }

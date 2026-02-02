@@ -56,7 +56,7 @@ export default function Dashboard() {
       {/* Main Content Area: Intelligence & News */}
       <main className="flex-1 overflow-y-auto flex flex-col xl:flex-row xl:gap-4 px-4 py-8 xl:py-0">
         <div className="flex-1 container max-w-4xl mx-auto xl:py-8 animate-in fade-in slide-in-from-bottom-4 duration-700 min-w-0 flex flex-col">
-          <header className="flex items-center justify-between mb-4">
+          <header className="flex-0 flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Lazy Investor</h1>
               <p className="text-sm text-slate-500">Market Insight • Vietnamese Stock Market</p>
@@ -70,7 +70,7 @@ export default function Dashboard() {
           </header>
 
           {/* Intelligence Center */}
-          <section className="xl:flex-1 flex flex-col">
+          <section className="flex-1 flex flex-col min-h-0">
             <AIBriefingCard selectedSymbol={selectedSymbol} />
           </section>
         </div>

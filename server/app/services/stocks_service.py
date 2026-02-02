@@ -334,7 +334,7 @@ def get_stock_info(symbols: List[str]) -> Dict[str, Any]:
             stock_info[symbol] = data
             _stock_info_cache[symbol] = data
             
-        print("Fetched stock info:", to_jsonable(stock_info))
+        # print("Fetched stock info:", to_jsonable(stock_info))
 
         if len(stock_info.keys()) == 0:
             return _no_data(

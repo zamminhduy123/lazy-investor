@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     app_name: str = "Stock API"
     api_version: str = "v1"
     
+    hours_between_news_fetch: int = 24  # Interval for fetching news
+    
     # Database settings (if applicable)
     database_url: str = "sqlite:///./test.db"  # Example for SQLite, change as needed
 

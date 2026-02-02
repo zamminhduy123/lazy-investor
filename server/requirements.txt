@@ -12,3 +12,4 @@ sqlalchemy
 perplexityai
 newspaper3k
 lxml[html_clean]
+apscheduler

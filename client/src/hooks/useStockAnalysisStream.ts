@@ -3,6 +3,31 @@ import { StockAnalysisResponse, getApiBaseUrl } from '@/api';
 
 const API_BASE_URL = getApiBaseUrl();
 
+/**
+ * Stock Analysis Hook - Upgraded for Background Job Architecture
+ * 
+ * This hook prioritizes instant pre-analyzed data from background jobs over streaming.
+ * 
+ * **Flow:**
+ * 1. Check cache (1hr TTL)
+ * 2. Fetch instant pre-analyzed data from DB (⚡ fast, preferred)
+ * 3. Fallback: Manual streaming if no data exists (🐌 slow, legacy)
+ * 
+ * **New Features:**
+ * - `dataSource`: 'instant' | 'stream' - indicates data origin
+ * - `isLoading`: true while fetching instant data
+ * - `weeklySummary`: weekly trend analysis (sentiment, themes, outlook)
+ * - Auto-fetches on symbol change (no manual trigger needed for instant data)
+ * 
+ * **Usage:**
+ * ```tsx
+ * const { finalResult, isLoading, dataSource, weeklySummary } = useStockAnalysisStream(symbol);
+ * 
+ * // Data auto-loads on mount if pre-analyzed
+ * // Use startAnalysis() only if finalResult is null (no pre-analyzed data)
+ * ```
+ */
+
 export interface AnalysisStreamEvent {
   type: 'status' | 'progress' | 'article_analyzed' | 'summary_generated' | 'complete' | 'error';
   data: any;
@@ -11,12 +36,31 @@ export interface AnalysisStreamEvent {
 interface CachedAnalysis {
   result: StockAnalysisResponse;
   timestamp: number;
+  source: 'instant' | 'stream'; // Track data source
 }
 
 interface BackgroundStream {
   symbol: string;
   eventSource: EventSource;
   events: AnalysisStreamEvent[];
+}
+
+export interface WeeklySummary {
+  symbol: string;
+  week_start: string;
+  week_end: string;
+  total_articles: number;
+  sentiment_distribution: {
+    bullish: number;
+    bearish: number;
+    neutral: number;
+  };
+  avg_score: number;
+  trend_direction: string;
+  key_themes: string[];
+  momentum_shift: string;
+  outlook: string;
+  analyzed_at: string;
 }
 
 // In-memory cache with expiration (1 hour)
@@ -29,9 +73,12 @@ const backgroundStreams = new Map<string, BackgroundStream>();
 export function useStockAnalysisStream(symbol: string | null) {
   const [events, setEvents] = useState<AnalysisStreamEvent[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [finalResult, setFinalResult] = useState<StockAnalysisResponse | null>(null);
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState({ step: 0, total: 5, message: '' });
+  const [dataSource, setDataSource] = useState<'instant' | 'stream' | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentSymbolRef = useRef<string | null>(null);
 
@@ -39,8 +86,11 @@ export function useStockAnalysisStream(symbol: string | null) {
   useEffect(() => {
     if (!symbol) {
       setFinalResult(null);
+      setWeeklySummary(null);
       setEvents([]);
       setIsStreaming(false);
+      setIsLoading(false);
+      setDataSource(null);
       currentSymbolRef.current = null;
       return;
     }
@@ -53,6 +103,7 @@ export function useStockAnalysisStream(symbol: string | null) {
       console.log(`🔄 Resuming background stream for ${symbol}`);
       setEvents(bgStream.events);
       setIsStreaming(true);
+      setDataSource('stream');
       eventSourceRef.current = bgStream.eventSource;
       
       // Remove from background streams since we're now actively watching it
@@ -66,11 +117,13 @@ export function useStockAnalysisStream(symbol: string | null) {
       const isExpired = Date.now() - cached.timestamp > CACHE_DURATION;
       
       if (!isExpired) {
-        console.log(`📦 Using cached analysis for ${symbol}`);
+        console.log(`📦 Using cached analysis for ${symbol} (source: ${cached.source})`);
         setFinalResult(cached.result);
         setEvents([{ type: 'complete', data: { result: cached.result } }]);
         setError(null);
         setIsStreaming(false);
+        setIsLoading(false);
+        setDataSource(cached.source);
         return;
       } else {
         // Remove expired cache
@@ -78,12 +131,65 @@ export function useStockAnalysisStream(symbol: string | null) {
       }
     }
 
-    // No valid cache, clear state
-    setFinalResult(null);
-    setEvents([]);
-    setError(null);
-    setIsStreaming(false);
+    // No valid cache, try to fetch instant pre-analyzed data
+    fetchInstantAnalysis(symbol);
   }, [symbol]);
+
+  // NEW: Fetch instant pre-analyzed data from background jobs
+  const fetchInstantAnalysis = async (sym: string) => {
+    if (!sym) return;
+
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Fetch both analysis and weekly summary in parallel
+      const [analysisRes, weeklyRes] = await Promise.allSettled([
+        fetch(`${API_BASE_URL}/api/v1/analysis/${sym}`),
+        fetch(`${API_BASE_URL}/api/v1/analysis/${sym}/weekly`)
+      ]);
+
+      // Handle analysis response
+      if (analysisRes.status === 'fulfilled' && analysisRes.value.ok) {
+        const result: StockAnalysisResponse = await analysisRes.value.json();
+        
+        console.log(`⚡ Got instant pre-analyzed data for ${sym}`);
+        setFinalResult(result);
+        setDataSource('instant');
+        setIsLoading(false);
+        
+        // Cache the instant result
+        analysisCache.set(sym, {
+          result,
+          timestamp: Date.now(),
+          source: 'instant'
+        });
+
+        // Simulate completion event for UI consistency
+        setEvents([{ 
+          type: 'complete', 
+          data: { result, source: 'database' } 
+        }]);
+      } else {
+        // No pre-analyzed data available, will need to stream
+        console.log(`⚠️  No pre-analyzed data for ${sym}, streaming required`);
+        setIsLoading(false);
+        // Don't auto-start streaming, let user explicitly request it
+      }
+
+      // Handle weekly summary response
+      if (weeklyRes.status === 'fulfilled' && weeklyRes.value.ok) {
+        const weekly: WeeklySummary = await weeklyRes.value.json();
+        console.log(`📊 Got weekly summary for ${sym}`);
+        setWeeklySummary(weekly);
+      }
+
+    } catch (err) {
+      console.error('Failed to fetch instant analysis:', err);
+      setError('Failed to load analysis data');
+      setIsLoading(false);
+    }
+  };
 
   const startAnalysis = useCallback(() => {
     if (!symbol) return;
@@ -110,10 +216,14 @@ export function useStockAnalysisStream(symbol: string | null) {
 
     currentSymbolRef.current = symbol;
     setIsStreaming(true);
+    setIsLoading(true);
     setEvents([]);
     setError(null);
     setFinalResult(null);
+    setDataSource('stream');
     setProgress({ step: 0, total: 5, message: '' });
+
+    console.log(`🔴 Starting legacy streaming analysis for ${symbol} (slow)`);
 
     const eventSource = new EventSource(
       `${API_BASE_URL}/api/v1/analysis/${symbol}/stream`
@@ -136,13 +246,15 @@ export function useStockAnalysisStream(symbol: string | null) {
               const result = parsed.data.result;
               setFinalResult(result);
               setIsStreaming(false);
+              setIsLoading(false);
               
               // Cache the result
               analysisCache.set(symbol, {
                 result,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                source: 'stream'
               });
-              console.log(`💾 Cached analysis for ${symbol}`);
+              console.log(`💾 Cached streamed analysis for ${symbol}`);
               
               eventSource.close();
               eventSourceRef.current = null;
@@ -150,6 +262,7 @@ export function useStockAnalysisStream(symbol: string | null) {
             case 'error':
               setError(parsed.data.message);
               setIsStreaming(false);
+              setIsLoading(false);
               eventSource.close();
               eventSourceRef.current = null;
               break;
@@ -166,7 +279,8 @@ export function useStockAnalysisStream(symbol: string | null) {
               const result = parsed.data.result;
               analysisCache.set(symbol, {
                 result,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                source: 'stream'
               });
               console.log(`💾 Background stream completed and cached for ${symbol}`);
               eventSource.close();
@@ -185,6 +299,7 @@ export function useStockAnalysisStream(symbol: string | null) {
       if (currentSymbolRef.current === symbol) {
         setError('Connection lost');
         setIsStreaming(false);
+        setIsLoading(false);
       }
       
       eventSource.close();
@@ -224,9 +339,31 @@ export function useStockAnalysisStream(symbol: string | null) {
         backgroundStreams.delete(symbol);
       }
       
-      startAnalysis();
+      // Close current stream if running
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      
+      // Fetch fresh instant data first
+      fetchInstantAnalysis(symbol);
     }
-  }, [symbol, startAnalysis]);
+  }, [symbol]);
+
+  // Helper to refresh weekly summary
+  const refreshWeeklySummary = useCallback(async () => {
+    if (!symbol) return;
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/analysis/${symbol}/weekly`);
+      if (res.ok) {
+        const weekly: WeeklySummary = await res.json();
+        setWeeklySummary(weekly);
+      }
+    } catch (err) {
+      console.error('Failed to refresh weekly summary:', err);
+    }
+  }, [symbol]);
 
   // Helper to check if cached data exists
   const hasCachedData = useCallback(() => {
@@ -239,11 +376,15 @@ export function useStockAnalysisStream(symbol: string | null) {
   return {
     events,
     isStreaming,
+    isLoading,
     finalResult,
+    weeklySummary,
     error,
     progress,
-    startAnalysis,
+    dataSource,
+    startAnalysis, // Legacy streaming (slow, only use if no instant data)
     forceRefresh,
+    refreshWeeklySummary,
     hasCachedData: hasCachedData(),
   };
 }

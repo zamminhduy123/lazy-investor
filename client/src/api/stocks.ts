@@ -1,5 +1,5 @@
 import { fetchJson, getApiBaseUrl, toQueryString } from "./utils";
-import { QuoteInterval, ApiResult, SymbolsApiResponse, ServerStockInfo, ServerDividendEvent } from "./types";
+import { QuoteInterval, ApiResult, SymbolsApiResponse, ServerStockInfo, ServerDividendEvent, WatchlistResponse, AddToWatchlistResponse } from "./types";
 import { StockPerformance } from "./types";
 
 const API_BASE_URL = getApiBaseUrl();
@@ -37,6 +37,11 @@ export const stocksApi = {
       `${STOCKS_BASE}/dividend-history${toQueryString({ symbol })}`,
     symbols: () => `${STOCKS_BASE}/all-symbols`,
     indices: () => `${STOCKS_BASE}/indices`,
+    watchlist: () => `${STOCKS_BASE}/watchlist`,
+    addToWatchlist: (symbol: string) => 
+      `${STOCKS_BASE}/watchlist?symbol=${encodeURIComponent(symbol)}`,
+    removeFromWatchlist: (symbol: string) =>
+      `${STOCKS_BASE}/watchlist/${encodeURIComponent(symbol)}`,
   },
 
   /**
@@ -57,6 +62,8 @@ export const stocksApi = {
     indices: () => [stocksApi.urls.indices()] as const,
     stockPerformance: (symbol: string) => [stocksApi.urls.stockPerformance(symbol)] as const,
     dividendHistory: (symbol: string) => [stocksApi.urls.dividendHistory(symbol)] as const,
+    watchlist: () => [stocksApi.urls.watchlist()] as const,
+    stockInfo: (symbols: string[]) => [stocksApi.urls.stockInfo(symbols)] as const,
   },
 
   getQuote: <T = unknown>(
@@ -128,4 +135,34 @@ export const stocksApi = {
       signal: options?.signal,
       logPrefix: "[stocksApi]",
     }),
+
+  getWatchlist: <T = WatchlistResponse>(options?: { signal?: AbortSignal }) =>
+    fetchJson<T>(stocksApi.urls.watchlist(), {
+      signal: options?.signal,
+      logPrefix: "[stocksApi]",
+    }),
+
+  addToWatchlist: async (symbol: string, options?: { signal?: AbortSignal }): Promise<AddToWatchlistResponse> => {
+    const response = await fetch(stocksApi.urls.addToWatchlist(symbol), {
+      method: 'POST',
+      signal: options?.signal,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to add to watchlist' }));
+      throw new Error(error.detail || 'Failed to add to watchlist');
+    }
+    return response.json();
+  },
+
+  removeFromWatchlist: async (symbol: string, options?: { signal?: AbortSignal }) => {
+    const response = await fetch(stocksApi.urls.removeFromWatchlist(symbol), {
+      method: 'DELETE',
+      signal: options?.signal,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to remove from watchlist' }));
+      throw new Error(error.detail || 'Failed to remove from watchlist');
+    }
+    return response.json();
+  },
 };

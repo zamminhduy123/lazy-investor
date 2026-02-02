@@ -7,3 +7,15 @@ engine = create_engine(
     settings.database_url, connect_args={"check_same_thread": False}
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_db():
+    """
+    Dependency function to get database session.
+    Used with FastAPI's Depends() for automatic session management.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
